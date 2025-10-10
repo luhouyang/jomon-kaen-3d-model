@@ -2,6 +2,9 @@ voxel_pottery
 
 __pycache__
 
+*.zip
+
 # lightning
 eval_predictions
 lightning_logs
+checkpoints

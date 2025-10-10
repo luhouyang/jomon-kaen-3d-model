@@ -258,7 +258,7 @@ class PointNetLightningModule(pl.LightningModule):
 
 if __name__ == '__main__':
     N_SAMPLES_GLOBAL = 2048  # Number of seed points from FPS
-    N_SAMPLES_LOCAL = 2048  # Number of points sampled around the seeds
+    N_SAMPLES_LOCAL = 6144  # Number of points sampled around the seeds
     N_TOTAL_SAMPLES = N_SAMPLES_GLOBAL + N_SAMPLES_LOCAL
     LOCAL_RADIUS = 8.0
     NUM_LOCAL_SEEDS = 48
