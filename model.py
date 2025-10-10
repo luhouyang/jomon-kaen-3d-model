@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+# Using a smaller T-Net than original, can try other configuraations
 class TNet(nn.Module):
     """
     A Transformation Network (T-Net) that learns a KxK transformation matrix.
@@ -41,12 +43,8 @@ class TNet(nn.Module):
         return x
 
 
+# yapf: disable
 class PointNetTransformerRegressor(nn.Module):
-    """
-    Processes a single fused point cloud with one input T-Net, a shared backbone,
-    and a smaller Transformer for feature aggregation.
-    """
-
     def __init__(self,
                  num_outputs=13,
                  feature_dim=125,
@@ -66,15 +64,14 @@ class PointNetTransformerRegressor(nn.Module):
         self.bn3 = nn.BatchNorm1d(feature_dim)
 
         # Smaller Transformer Encoder
-        self.embedding_dim = feature_dim + 3  # Add XYZ back
+        self.embedding_dim = feature_dim + 3  # Add XYZ back, from 3DETR
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.embedding_dim,
             nhead=nhead,
             dim_feedforward=dim_feedforward,
             batch_first=False,
             dropout=0.2)
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer, num_layers=num_encoder_layers)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_encoder_layers)
 
         # MLP Head
         self.fc1 = nn.Linear(self.embedding_dim, 128)
@@ -99,23 +96,19 @@ class PointNetTransformerRegressor(nn.Module):
         x = torch.bmm(x_feat.transpose(2, 1),
                       feature_transform).transpose(2, 1)
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.bn3(
-            self.conv3(x))  # Final per-point features: (B, feature_dim, N)
+        x = self.bn3(self.conv3(x))  # Final per-point features: (B, feature_dim, N)
 
         # 3. Prepare for Transformer by adding back XYZ coordinates
         xyz_coords = x[:, :3, :]  # Get transformed XYZ
-        combined_for_transformer = torch.cat([xyz_coords, x],
-                                             dim=1)  # (B, 3+feature_dim, N)
-        transformer_input = combined_for_transformer.permute(
-            2, 0, 1)  # (N, B, 3+feature_dim)
+        combined_for_transformer = torch.cat([xyz_coords, x], dim=1)  # (B, 3+feature_dim, N)
+        transformer_input = combined_for_transformer.permute(2, 0, 1)  # (N, B, 3+feature_dim)
 
         # 4. Transformer and MLP Head
-        transformer_output = self.transformer_encoder(
-            transformer_input)  # (N, B, embedding_dim)
-        aggregated_features = torch.max(transformer_output,
-                                        0)[0]  # (B, embedding_dim)
+        transformer_output = self.transformer_encoder(transformer_input)  # (N, B, embedding_dim)
+        aggregated_features = torch.max(transformer_output, 0)[0]  # (B, embedding_dim)
 
         x = self.drop1(F.relu(self.bn1_head(self.fc1(aggregated_features))))
         x = self.drop2(F.relu(self.bn2_head(self.fc2(x))))
         x = self.fc3(x)
         return x
+# yapf: enable

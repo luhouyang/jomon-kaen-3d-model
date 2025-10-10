@@ -85,7 +85,6 @@ class JomonKaenDataModule(pl.LightningDataModule):
             _, self.predict_dataset = self.get_jomon_kaen_data(
                 test_groups=test_groups, **common_params)
 
-    # Dataloader methods (train_dataloader, etc.) remain unchanged
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
@@ -206,7 +205,6 @@ class PointNetLightningModule(pl.LightningModule):
         return self.model(inputs)
 
     def _shared_step(self, batch, batch_idx):
-        # Unpack single input tensor
         inputs, targets = batch
         outputs = self.forward(inputs)
         loss = self.criterion(outputs, targets)
@@ -257,11 +255,11 @@ class PointNetLightningModule(pl.LightningModule):
 
 
 if __name__ == '__main__':
-    N_SAMPLES_GLOBAL = 2048  # Number of seed points from FPS
-    N_SAMPLES_LOCAL = 6144  # Number of points sampled around the seeds
+    N_SAMPLES_GLOBAL = 2048     # Number of seed points from FPS
+    N_SAMPLES_LOCAL = 8192      # Number of points sampled around the seeds
     N_TOTAL_SAMPLES = N_SAMPLES_GLOBAL + N_SAMPLES_LOCAL
-    LOCAL_RADIUS = 8.0
-    NUM_LOCAL_SEEDS = 48
+    LOCAL_RADIUS = 10.0         # Radius for local sampling
+    NUM_LOCAL_SEEDS = 64        # Number of seeds for local sampling (clusters)
 
     BATCH_SIZE = 4
     MAX_EPOCHS = 100
@@ -293,7 +291,6 @@ if __name__ == '__main__':
                                     lr_final=LEARNING_RATE_FINAL)
 
     print("\nModel Summary:")
-    # Update input size for torchinfo summary
     torchinfo.summary(model, input_size=[(BATCH_SIZE, N_TOTAL_SAMPLES, 6)])
 
     best_checkpoint_callback = ModelCheckpoint(
