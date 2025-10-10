@@ -1,0 +1,7 @@
+voxel_pottery
+
+__pycache__
+
+# lightning
+eval_predictions
+lightning_logs
