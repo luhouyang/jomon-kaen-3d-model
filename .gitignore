@@ -1,9 +1,12 @@
-voxel_pottery
+voxel*
 archive
 
 __pycache__
 
 *.zip
+*.ply
+*.glb
+*.npz
 
 # lightning
 eval_predictions

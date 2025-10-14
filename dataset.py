@@ -15,20 +15,26 @@ class PreprocessJomonKaenDataset(Dataset):
                  n_samples_global,
                  n_samples_local,
                  num_local_seeds=64,
-                 local_radius=7.5):
+                 local_radius_ratio=7.5,
+                 merge_points=True):
         super(PreprocessJomonKaenDataset, self).__init__()
         self.data = data
         self.n_samples_global = n_samples_global
         self.n_samples_local = n_samples_local
         self.num_local_seeds = num_local_seeds
-        self.local_radius = local_radius
+        self.local_radius_ratio = local_radius_ratio
         self.total_samples = n_samples_global + n_samples_local
+        self.merge_points = merge_points
+
+        if (not self.merge_points and self.n_samples_local <= 0):
+            raise ValueError("If merge_points is False, n_samples_local must be greater than 0.")
 
         # Make sure to match the eval save callback labels
         self.headers = [
             'CODE', 'HAS_FLAME_LIKE_DECORATION', 'HAS_CROWN_LIKE_DECORATION',
             'HAS_HANDLES', 'HAS_CORD_MARKED_PATTERN', 'HAS_NAIL_ENGRAVING',
-            'HAS_SPIRAL_PATTERN', 'NUMBER_OF_PERTRUSIONS_0.0',
+            'HAS_SPIRAL_PATTERN', 
+            'NUMBER_OF_PERTRUSIONS_0.0',
             'NUMBER_OF_PERTRUSIONS_1.0', 'NUMBER_OF_PERTRUSIONS_2.0',
             'NUMBER_OF_PERTRUSIONS_3.0', 'NUMBER_OF_PERTRUSIONS_4.0',
             'NUMBER_OF_PERTRUSIONS_6.0', 'NUMBER_OF_PERTRUSIONS_8.0'
@@ -46,6 +52,11 @@ class PreprocessJomonKaenDataset(Dataset):
         if len(pottery_pcd.points) < self.total_samples:
             print("Pottery file does not have enought points to sample!")
             return (torch.zeros((self.total_samples, 6), dtype=torch.float32), torch.zeros(14, dtype=torch.float32))
+
+        pcd_min = pottery_pcd.get_min_bound()
+        pcd_max = pottery_pcd.get_max_bound()
+        range = np.max(pcd_max - pcd_min)
+        local_radius = range / self.local_radius_ratio
 
         pottery_points = np.asarray(pottery_pcd.points, dtype=np.float32)
         pottery_colors = np.asarray(pottery_pcd.colors, dtype=np.float32)
@@ -84,7 +95,7 @@ class PreprocessJomonKaenDataset(Dataset):
         pcd_tree = o3d.geometry.KDTreeFlann(pottery_pcd)
         local_indices = []
         for point in pcd_seeds.points:
-            [_, idx, _] = pcd_tree.search_radius_vector_3d(point, self.local_radius)
+            [_, idx, _] = pcd_tree.search_radius_vector_3d(point, local_radius)
             local_indices.extend(idx)
 
         unique_local_indices = np.unique(local_indices)
@@ -114,16 +125,30 @@ class PreprocessJomonKaenDataset(Dataset):
                 local_points = local_points[idx, :]
                 local_colors = local_colors[idx, :]
 
-        # 4. Final Combination, combine GLOBAL points and LOCAL points
-        combined_points = np.vstack((global_points, local_points))
-        combined_colors = np.vstack((global_colors, local_colors))
-        combined_xyz_rgb = np.hstack((combined_points, combined_colors))
+        if self.merge_points:
+            # 4. Final Combination, combine GLOBAL points and LOCAL points
+            combined_points = np.vstack((global_points, local_points))
+            combined_colors = np.vstack((global_colors, local_colors))
+            combined_xyz_rgb = np.hstack((combined_points, combined_colors))
 
-        combined_tensor = torch.from_numpy(combined_xyz_rgb.astype(np.float32))
-        target_tensor = torch.from_numpy(
-            self.labels.loc[self.labels['CODE'] == pottery_name, self.headers[1:]]
-            .values.astype(np.float32)
-        ).squeeze()
+            combined_tensor = torch.from_numpy(combined_xyz_rgb.astype(np.float32))
+            target_tensor = torch.from_numpy(
+                self.labels.loc[self.labels['CODE'] == pottery_name, self.headers[1:]]
+                .values.astype(np.float32)
+            ).squeeze()
 
-        return combined_tensor, target_tensor
+            return combined_tensor, target_tensor
+
+        else:
+            global_xyz_rgb = np.hstack((global_points, global_colors))
+            local_xyz_rgb = np.hstack((local_points, local_colors))
+
+            global_tensor = torch.from_numpy(global_xyz_rgb.astype(np.float32))
+            local_tensor = torch.from_numpy(local_xyz_rgb.astype(np.float32))
+            target_tensor = torch.from_numpy(
+                self.labels.loc[self.labels['CODE'] == pottery_name, self.headers[1:]]
+                .values.astype(np.float32)
+            ).squeeze()
+
+            return global_tensor, local_tensor, target_tensor
 # yapf: enable
