@@ -11,7 +11,7 @@ import numpy as np
 import torchinfo
 
 # This import is assumed to contain the PreprocessJomonKaenDataset class
-from dataset import PreprocessJomonKaenDataset
+from models_iteration_1.dataset import PreprocessJomonKaenDataset
 
 # =================================================================================
 # MODEL DEFINITIONS: T-NET and POINTNET-TRANSFORMER
