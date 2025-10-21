@@ -1,4 +1,6 @@
 voxel_pottery
+checkpoints*
+eval*
 archive
 
 __pycache__
