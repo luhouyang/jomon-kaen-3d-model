@@ -386,10 +386,10 @@ class Conv3DNetwork(nn.Module):
 
         self.output_head = nn.Sequential(
             nn.Linear(conv_dims[-1] * (final_size**3),
-                      64),
+                      16),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
-            nn.Linear(64,
+            nn.Linear(16,
                       num_outputs))
 
     def conv_block(self, in_dim, out_dim):
@@ -499,13 +499,15 @@ class VoxelNetLightningModule(pl.LightningModule):
                  warmup_total_iters=100):
         super().__init__()
         self.save_hyperparameters()
-        self.model = Conv3DNetwork(num_outputs=self.hparams.num_outputs,
-                                   resolution=self.hparams.resolution,
-                                   conv_dims=[3,
-                                              16,
-                                              32,
-                                              64,
-                                              128])
+        self.model = Conv3DNetwork(
+            um_outputs=self.hparams.num_outputs,
+            resolution=self.hparams.resolution,
+            conv_dims=[3,
+                       8,
+                       16,
+                       32,
+                       64],
+        )
 
         if self.hparams.use_weighted_loss:
             print("Using weighted loss in criterion")

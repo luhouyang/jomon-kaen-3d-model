@@ -431,7 +431,7 @@ class VoxelNetLightningModule(pl.LightningModule):
         self.save_hyperparameters()
         self.model = Conv3DNetwork(num_outputs=self.hparams.num_outputs,
                                 resolution=self.hparams.resolution,
-                                conv_dims=[3, 4, 8, 16, 32, 64, 64]
+                                conv_dims=[3, 4, 8, 16, 16, 32, 32, 32]
                                 )
 
         if self.hparams.use_weighted_loss:
