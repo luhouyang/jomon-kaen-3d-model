@@ -392,9 +392,26 @@ class Conv3DNetwork(nn.Module):
             nn.Linear(16,
                       num_outputs))
 
+    # def conv_block(self, in_dim, out_dim):
+    #     return nn.Sequential(
+    #         nn.Conv3d(in_dim,
+    #                   out_dim,
+    #                   kernel_size=3,
+    #                   padding=1),
+    #         nn.BatchNorm3d(out_dim),
+    #         nn.ReLU(inplace=True),
+    #         nn.MaxPool3d(2),
+    #     )
+
     def conv_block(self, in_dim, out_dim):
         return nn.Sequential(
             nn.Conv3d(in_dim,
+                      out_dim,
+                      kernel_size=3,
+                      padding=1),
+            nn.BatchNorm3d(out_dim),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(out_dim,
                       out_dim,
                       kernel_size=3,
                       padding=1),
@@ -500,13 +517,16 @@ class VoxelNetLightningModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = Conv3DNetwork(
-            um_outputs=self.hparams.num_outputs,
+            num_outputs=self.hparams.num_outputs,
             resolution=self.hparams.resolution,
             conv_dims=[3,
+                       4,
+                       8,
                        8,
                        16,
+                       16,
                        32,
-                       64],
+                       32],
         )
 
         if self.hparams.use_weighted_loss:
@@ -621,10 +641,10 @@ if __name__ == "__main__":
     ]
     NUM_OUTPUTS = len(FEATURE_COLUMNS)
 
-    VOXEL_RESOLUTION = 80
+    VOXEL_RESOLUTION = 512
     BATCH_SIZE = 8
     MAX_EPOCHS = 1000
-    NUM_WORKERS = 8
+    NUM_WORKERS = 2
     LEARNING_RATE_INITIAL = 1e-3
     LEARNING_RATE_FINAL = 1e-6
     NUM_OUTPUTS = 13
@@ -633,9 +653,9 @@ if __name__ == "__main__":
 
     L1_LAMBDA = 1e-4
 
-    LABELS_CSV_PATH = r"C:\Users\User\Desktop\Python\jomon-kaen-3d-model\DS_Labels_Cleaned.csv"
-    MESH_DIR = r"D:\storage\jomon_kaen\pottery_only"
-    CACHE_DIR = r"voxel_cache"
+    LABELS_CSV_PATH = "./DS_Labels_Cleaned.csv"
+    MESH_DIR = "./pottery"
+    CACHE_DIR = "./voxel_cache"
 
     pl.seed_everything(42)
     torch.set_float32_matmul_precision('high')

@@ -240,30 +240,30 @@ class JomonKaenVoxelDataModule(pl.LightningDataModule):
         np.random.shuffle(all_files)
 
         # Define test set (held-out samples for final evaluation)
-        test_groups = {
-            "IN0009(5).glb",
-            "NM0049(30).glb",
-            "UD0005(71).glb",
-            "NM0015(27).glb",
-            "NM0066(31).glb",
-            "NM0099(37).glb",
-            "NM0154(42).glb",
-            "NM0168(45).glb",
-            "SI0001(53).glb",
-            "SJ0503(54).glb"
-        }
-
         # test_groups = {
-        #     "IN0008(4).ply", "IN0009(5).ply", "IN0081(7).ply", 
-        #     "IN0220(11).ply", "IN0239(14).ply", "MY0007(20).ply", 
-        #     "NM0002(23).ply", "NM0010(25).ply", "NM0041(29).ply", 
-        #     "NM0049(30).ply", "NM0079(35).ply", "NM0099(37).ply", 
-        #     "NM0144(41).ply", "NM0168(45).ply", "NM0173(46).ply", 
-        #     "NM0191(49).ply", "SB0002(51).ply", "SI0001(53).ply", 
-        #     "SK0001(56).ply", "SK0004(59).ply", "UD0003(70).ply", 
-        #     "UD0005(71).ply", "UD0016(76).ply", "UD0302(78).ply", 
-        #     "UD0318(81).ply"
+        #     "IN0009(5).glb",
+        #     "NM0049(30).glb",
+        #     "UD0005(71).glb",
+        #     "NM0015(27).glb",
+        #     "NM0066(31).glb",
+        #     "NM0099(37).glb",
+        #     "NM0154(42).glb",
+        #     "NM0168(45).glb",
+        #     "SI0001(53).glb",
+        #     "SJ0503(54).glb"
         # }
+
+        test_groups = {
+            "IN0008(4).glb", "IN0009(5).glb", "IN0081(7).glb", 
+            "IN0220(11).glb", "IN0239(14).glb", "MY0007(20).glb", 
+            "NM0002(23).glb", "NM0010(25).glb", "NM0041(29).glb", 
+            "NM0049(30).glb", "NM0079(35).glb", "NM0099(37).glb", 
+            "NM0144(41).glb", "NM0168(45).glb", "NM0173(46).glb", 
+            "NM0191(49).glb", "SB0002(51).glb", "SI0001(53).glb", 
+            "SK0001(56).glb", "SK0004(59).glb", "UD0003(70).glb", 
+            "UD0005(71).glb", "UD0016(76).glb", "UD0302(78).glb", 
+            "UD0318(81).glb"
+        }
 
         common_params = {
             "labels_csv_path": self.hparams.labels_csv_path,
@@ -337,24 +337,24 @@ class Conv3DNetwork(nn.Module):
             nn.Linear(16, num_outputs)
         )
     
-    def conv_block(self, in_dim, out_dim):
-        return nn.Sequential(
-            nn.Conv3d(in_dim, out_dim, kernel_size=3, padding=1),
-            nn.BatchNorm3d(out_dim),
-            nn.ReLU(inplace=True),
-            nn.MaxPool3d(2),
-        )
-
     # def conv_block(self, in_dim, out_dim):
     #     return nn.Sequential(
     #         nn.Conv3d(in_dim, out_dim, kernel_size=3, padding=1),
     #         nn.BatchNorm3d(out_dim),
     #         nn.ReLU(inplace=True),
-    #         nn.Conv3d(out_dim, out_dim, kernel_size=3, padding=1),
-    #         nn.BatchNorm3d(out_dim),
-    #         nn.ReLU(inplace=True),
     #         nn.MaxPool3d(2),
     #     )
+
+    def conv_block(self, in_dim, out_dim):
+        return nn.Sequential(
+            nn.Conv3d(in_dim, out_dim, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_dim),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(out_dim, out_dim, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_dim),
+            nn.ReLU(inplace=True),
+            nn.MaxPool3d(2),
+        )
         
     def forward(self, x):
         x = self.feature_extraction(x)
@@ -431,7 +431,14 @@ class VoxelNetLightningModule(pl.LightningModule):
         self.save_hyperparameters()
         self.model = Conv3DNetwork(num_outputs=self.hparams.num_outputs,
                                 resolution=self.hparams.resolution,
-                                conv_dims=[3, 4, 8, 16, 16, 32, 32, 32]
+                                conv_dims=[3,
+                       4,
+                       8,
+                       8,
+                       16,
+                       16,
+                       32,
+                       32],
                                 )
 
         if self.hparams.use_weighted_loss:
@@ -544,10 +551,10 @@ if __name__ == "__main__":
     ]
     NUM_OUTPUTS = len(FEATURE_COLUMNS)
 
-    VOXEL_RESOLUTION = 256
-    BATCH_SIZE = 4
+    VOXEL_RESOLUTION = 512
+    BATCH_SIZE = 8
     MAX_EPOCHS = 1000
-    NUM_WORKERS = 4
+    NUM_WORKERS = 2
     LEARNING_RATE_INITIAL = 1e-3
     LEARNING_RATE_FINAL = 1e-6
     NUM_OUTPUTS = 13
@@ -556,9 +563,9 @@ if __name__ == "__main__":
 
     L1_LAMBDA = 1e-4
 
-    LABELS_CSV_PATH = r"C:\Users\User\Desktop\Python\jomon-kaen-3d-model\DS_Labels_Cleaned.csv"
-    MESH_DIR = r"D:\storage\jomon_kaen\pottery_only"
-    CACHE_DIR = r"voxel_cache"
+    LABELS_CSV_PATH = "./DS_Labels_Cleaned.csv"
+    MESH_DIR = "./pottery"
+    CACHE_DIR = "./voxel_cache"
 
     pl.seed_everything(42)
     torch.set_float32_matmul_precision('high')
